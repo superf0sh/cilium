@@ -761,6 +761,9 @@ func init() {
 	flags.Duration(option.K8sHeartbeatTimeout, 30*time.Second, "Configures the timeout for api-server heartbeat, set to 0 to disable")
 	option.BindEnv(option.K8sHeartbeatTimeout)
 
+	flags.Bool(option.EnableIPv4FragmentsTrackingName, defaults.EnableIPv4FragmentsTracking, "Enable IPv4 fragments tracking for L4-based lookups")
+	option.BindEnv(option.EnableIPv4FragmentsTrackingName)
+
 	viper.BindPFlags(flags)
 }
 
@@ -1084,9 +1087,16 @@ func initEnv(cmd *cobra.Command) {
 		return
 	}
 
-	supportedMapTypes := probes.NewProbeManager().GetMapTypes()
-	if option.Config.EnableIPv4 && !supportedMapTypes.HaveLruHashMapType {
-		log.Info("Disabled support for IPv4 fragments due to missing kernel support for BPF LRU maps")
+	if option.Config.EnableIPv4FragmentsTracking {
+		if !option.Config.EnableIPv4 {
+			option.Config.EnableIPv4FragmentsTracking = false
+		} else {
+			supportedMapTypes := probes.NewProbeManager().GetMapTypes()
+			if !supportedMapTypes.HaveLruHashMapType {
+				option.Config.EnableIPv4FragmentsTracking = false
+				log.Info("Disabled support for IPv4 fragments due to missing kernel support for BPF LRU maps")
+			}
+		}
 	}
 }
 
