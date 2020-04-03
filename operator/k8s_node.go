@@ -25,19 +25,18 @@ import (
 	"github.com/cilium/cilium/pkg/ipam"
 	"github.com/cilium/cilium/pkg/k8s"
 	cilium_v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
-	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2"
+	v2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2"
 	"github.com/cilium/cilium/pkg/k8s/informer"
 	"github.com/cilium/cilium/pkg/k8s/utils"
 	k8sversion "github.com/cilium/cilium/pkg/k8s/version"
 	"github.com/cilium/cilium/pkg/kvstore/store"
-	"github.com/cilium/cilium/pkg/node"
 	nodeStore "github.com/cilium/cilium/pkg/node/store"
+	nodeTypes "github.com/cilium/cilium/pkg/node/types"
 	"github.com/cilium/cilium/pkg/option"
 	"github.com/cilium/cilium/pkg/serializer"
 	"github.com/cilium/cilium/pkg/source"
 
-	"k8s.io/api/core/v1"
-	core_v1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
@@ -143,7 +142,7 @@ func runNodeWatcher(nodeManager *ipam.NodeManager) error {
 			kvStoreNodes := ciliumNodeStore.SharedKeysMap()
 			for _, k8sNode := range listOfK8sNodes {
 				// The remaining kvStoreNodes are leftovers
-				kvStoreNodeName := node.GetKeyNodeName(option.Config.ClusterName, k8sNode)
+				kvStoreNodeName := nodeTypes.GetKeyNodeName(option.Config.ClusterName, k8sNode)
 				delete(kvStoreNodes, kvStoreNodeName)
 			}
 
@@ -212,7 +211,7 @@ func runCNPNodeStatusGC(name string, clusterwide bool, ciliumNodeStore *store.Sh
 						}
 						continueID = ccnpList.Continue
 					} else {
-						cnpList, err := ciliumK8sClient.CiliumV2().CiliumNetworkPolicies(core_v1.NamespaceAll).List(ctx,
+						cnpList, err := ciliumK8sClient.CiliumV2().CiliumNetworkPolicies(v1.NamespaceAll).List(ctx,
 							meta_v1.ListOptions{
 								Limit:    10,
 								Continue: continueID,
@@ -229,7 +228,7 @@ func runCNPNodeStatusGC(name string, clusterwide bool, ciliumNodeStore *store.Sh
 						needsUpdate := false
 						nodesToDelete := map[string]cilium_v2.Timestamp{}
 						for n, status := range cnp.Status.Nodes {
-							kvStoreNodeName := node.GetKeyNodeName(option.Config.ClusterName, n)
+							kvStoreNodeName := nodeTypes.GetKeyNodeName(option.Config.ClusterName, n)
 							if _, exists := kvStoreNodes[kvStoreNodeName]; !exists {
 								// To avoid concurrency issues where a is
 								// created and adds its CNP Status before the operator
