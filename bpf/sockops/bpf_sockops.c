@@ -5,8 +5,13 @@
 #include <bpf/api.h>
 
 #include <node_config.h>
+#include <netdev_config.h>
 
 #include <linux/if_ether.h>
+
+#ifdef DROP_NOTIFY
+# undef DROP_NOTIFY
+#endif
 
 #define SKIP_CALLS_MAP 1
 #define SKIP_POLICY_MAP 1
