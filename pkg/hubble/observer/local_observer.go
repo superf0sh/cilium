@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package observer
 
 import (
 	"context"
@@ -27,9 +27,9 @@ import (
 	"github.com/cilium/cilium/pkg/hubble/container"
 	"github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/cilium/pkg/hubble/metrics"
+	"github.com/cilium/cilium/pkg/hubble/observer/option"
 	"github.com/cilium/cilium/pkg/hubble/parser"
 	"github.com/cilium/cilium/pkg/hubble/parser/errors"
-	"github.com/cilium/cilium/pkg/hubble/server/serveroption"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -38,7 +38,7 @@ import (
 
 // DefaultOptions to include in the server. Other packages may extend this
 // in their init() function.
-var DefaultOptions []serveroption.Option
+var DefaultOptions []option.Option
 
 // GRPCServer defines the interface for Hubble gRPC server, extending the
 // auto-generated ObserverServer interface from the protobuf definition.
@@ -83,16 +83,16 @@ type LocalObserverServer struct {
 	// payloadParser decodes pb.Payload into pb.Flow
 	payloadParser *parser.Parser
 
-	opts serveroption.Options
+	opts option.Options
 }
 
-// NewLocalServer returns a new local observer server.
-func NewLocalServer(
+// NewObserver returns a new local observer server.
+func NewObserver(
 	payloadParser *parser.Parser,
 	logger *logrus.Entry,
-	options ...serveroption.Option,
+	options ...option.Option,
 ) (*LocalObserverServer, error) {
-	opts := serveroption.Default // start with defaults
+	opts := option.Default // start with defaults
 	options = append(options, DefaultOptions...)
 	for _, opt := range options {
 		if err := opt(&opts); err != nil {
@@ -202,8 +202,8 @@ func (s *LocalObserverServer) GetPayloadParser() *parser.Parser {
 	return s.payloadParser
 }
 
-// GetOptions implements serveroptions.Server.GetOptions.
-func (s *LocalObserverServer) GetOptions() serveroption.Options {
+// GetOptions implements option.Server.GetOptions.
+func (s *LocalObserverServer) GetOptions() option.Options {
 	return s.opts
 }
 

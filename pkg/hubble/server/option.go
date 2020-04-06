@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package serve
+package server
 
 import (
 	"fmt"
@@ -22,15 +22,15 @@ import (
 
 	"github.com/cilium/cilium/pkg/hubble/api"
 	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	"github.com/cilium/cilium/pkg/hubble/server"
+	"github.com/cilium/cilium/pkg/hubble/observer"
 
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-// DefaultOptions is the reference point for default values.
-var DefaultOptions = Options{
+// defaultOptions is the reference point for default values.
+var defaultOptions = Options{
 	Listeners: make(map[string]net.Listener),
 }
 
@@ -38,7 +38,7 @@ var DefaultOptions = Options{
 type Options struct {
 	Listeners       map[string]net.Listener
 	HealthService   *health.Server
-	ObserverService *server.GRPCServer
+	ObserverService *observer.GRPCServer
 }
 
 // Option customizes then configuration of the hubble server.
@@ -121,7 +121,7 @@ func WithHealthService() Option {
 }
 
 // WithObserverService configures the server to expose the given observer server service.
-func WithObserverService(svc server.GRPCServer) Option {
+func WithObserverService(svc observer.GRPCServer) Option {
 	return func(o *Options) error {
 		o.ObserverService = &svc
 		return nil

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package serve
+package server
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ type Server struct {
 
 // NewServer creates a new hubble gRPC server.
 func NewServer(log *logrus.Entry, options ...Option) (*Server, error) {
-	opts := DefaultOptions
+	opts := defaultOptions
 	for _, opt := range options {
 		if err := opt(&opts); err != nil {
 			return nil, fmt.Errorf("failed to apply option: %v", err)

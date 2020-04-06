@@ -14,7 +14,7 @@
 
 // +build !privileged_tests
 
-package server
+package observer
 
 import (
 	"context"
@@ -23,8 +23,8 @@ import (
 	pb "github.com/cilium/cilium/api/v1/flow"
 	"github.com/cilium/cilium/api/v1/observer"
 	"github.com/cilium/cilium/pkg/hubble/logger"
+	"github.com/cilium/cilium/pkg/hubble/observer/option"
 	"github.com/cilium/cilium/pkg/hubble/parser"
-	"github.com/cilium/cilium/pkg/hubble/server/serveroption"
 	"github.com/cilium/cilium/pkg/hubble/testutils"
 	"github.com/cilium/cilium/pkg/monitor"
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
@@ -46,9 +46,9 @@ func noopParser(t *testing.T) *parser.Parser {
 	return pp
 }
 
-func TestNewLocalServer(t *testing.T) {
+func TestNewObserver(t *testing.T) {
 	pp := noopParser(t)
-	s, err := NewLocalServer(pp, logger.GetLogger())
+	s, err := NewObserver(pp, logger.GetLogger())
 	require.NoError(t, err)
 	assert.NotNil(t, s.GetStopped())
 	assert.NotNil(t, s.GetPayloadParser())
@@ -58,11 +58,11 @@ func TestNewLocalServer(t *testing.T) {
 }
 
 func TestLocalObserverServer_ServerStatus(t *testing.T) {
-	// (glibsm): This test is really confusing. `serveroption.WithMaxFlows(1)`
+	// (glibsm): This test is really confusing. `option.WithMaxFlows(1)`
 	// results in the actual flow capacity of 2.
 
 	pp := noopParser(t)
-	s, err := NewLocalServer(pp, logger.GetLogger(), serveroption.WithMaxFlows(1))
+	s, err := NewObserver(pp, logger.GetLogger(), option.WithMaxFlows(1))
 	require.NoError(t, err)
 	res, err := s.ServerStatus(context.Background(), &observer.ServerStatusRequest{})
 	require.NoError(t, err)
@@ -74,12 +74,12 @@ func TestLocalObserverServer_GetFlows(t *testing.T) {
 	queueSize := 0
 	req := &observer.GetFlowsRequest{Number: uint64(10)}
 	i := 0
-	fakeServer := &FakeGetFlowsServer{
+	fakeServer := &testutils.FakeGetFlowsServer{
 		OnSend: func(response *observer.GetFlowsResponse) error {
 			i++
 			return nil
 		},
-		FakeGRPCServerStream: &FakeGRPCServerStream{
+		FakeGRPCServerStream: &testutils.FakeGRPCServerStream{
 			OnContext: func() context.Context {
 				return context.Background()
 			},
@@ -87,9 +87,9 @@ func TestLocalObserverServer_GetFlows(t *testing.T) {
 	}
 
 	pp := noopParser(t)
-	s, err := NewLocalServer(pp, logger.GetLogger(),
-		serveroption.WithMaxFlows(numFlows),
-		serveroption.WithMonitorBuffer(queueSize),
+	s, err := NewObserver(pp, logger.GetLogger(),
+		option.WithMaxFlows(numFlows),
+		option.WithMonitorBuffer(queueSize),
 	)
 	require.NoError(t, err)
 	go s.Start()
@@ -123,7 +123,7 @@ func TestHooks(t *testing.T) {
 	queueSize := 0
 
 	ciliumDaemon := &fakeCiliumDaemon{}
-	onServerInit := func(srv serveroption.Server) error {
+	onServerInit := func(srv option.Server) error {
 		assert.Equal(t, srv.GetOptions().CiliumDaemon, ciliumDaemon)
 		return nil
 	}
@@ -153,14 +153,14 @@ func TestHooks(t *testing.T) {
 	}
 
 	pp := noopParser(t)
-	s, err := NewLocalServer(pp, logger.GetLogger(),
-		serveroption.WithMaxFlows(numFlows),
-		serveroption.WithMonitorBuffer(queueSize),
-		serveroption.WithCiliumDaemon(ciliumDaemon),
-		serveroption.WithOnServerInitFunc(onServerInit),
-		serveroption.WithOnMonitorEventFunc(onMonitorEventFirst),
-		serveroption.WithOnMonitorEventFunc(onMonitorEventSecond),
-		serveroption.WithOnDecodedFlowFunc(onDecodedFlow),
+	s, err := NewObserver(pp, logger.GetLogger(),
+		option.WithMaxFlows(numFlows),
+		option.WithMonitorBuffer(queueSize),
+		option.WithCiliumDaemon(ciliumDaemon),
+		option.WithOnServerInitFunc(onServerInit),
+		option.WithOnMonitorEventFunc(onMonitorEventFirst),
+		option.WithOnMonitorEventFunc(onMonitorEventSecond),
+		option.WithOnDecodedFlowFunc(onDecodedFlow),
 	)
 	require.NoError(t, err)
 	go s.Start()
